@@ -1,0 +1,51 @@
+name: Test Coverage
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        cache: 'npm'
+    
+    - name: Install dependencies
+      run: npm ci
+    
+    - name: Setup environment
+      run: cp .env.example .env
+    
+    - name: Run tests with coverage
+      env:
+        NODE_ENV: "test"
+        GOOGLE_CHAT_WEBHOOK_URL: "https://chat.googleapis.com/v1/spaces/test/messages"
+        GITHUB_WEBHOOK_SECRET: "test-secret"
+        RATE_LIMIT_WINDOW_MS: "1000"
+        RATE_LIMIT_MAX_REQUESTS: "2"
+        LOG_LEVEL: "error"
+        REQUEST_TIMEOUT: "1000"
+        MAX_PAYLOAD_SIZE: "1024"
+      run: |
+        npm run test:coverage
+    
+    - name: Upload coverage reports
+      if: success()
+      uses: codecov/codecov-action@v3
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}
+        files: ./coverage/lcov.info
+        fail_ci_if_error: false
+        verbose: true
+        name: codecov-umbrella
+        flags: unittests
+        yml: ./.codecov.yml 
